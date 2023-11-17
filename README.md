@@ -89,7 +89,7 @@ The full set of options are:
 
 ### Character-level model
 
-The simplest case is to train the model on the next character prediction. Here I take GPT2 architecture After some basic hyperparameter search, the best eval loss run is: ![chrs model losses](chrs_losses.png "Losses")
+The simplest case is to train the model on the next character prediction. Here I take GPT2 architecture After some basic hyperparameter search, the best eval loss run is: ![chrs model losses](assets/chrs_losses.png)
 
 **The best eval loss is 1.46**
 
@@ -145,7 +145,7 @@ Sample generated text:
 
 My own implementation of BPE is in [tokenizers.py](tokenizers.py). Karpathy's implementation is [bpe.py](bpe.py) (which is itself based on OpenAI implementation). For training I mainly used the latter.
 
-After a short hyperparameter search, the best eval loss run I found with GPT-2 model is: ![bpe_losses](bpe_losses.png) Learning rate is decreased by half every 100 epochs (hence the sharp discontinuities in the plot). 
+After a short hyperparameter search, the best eval loss run I found with GPT-2 model is: ![bpe_losses](assets/bpe_losses.png) Learning rate is decreased by half every 100 epochs (hence the sharp discontinuities in the plot). 
 
 **The best eval loss is 3.56**
 
