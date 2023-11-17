@@ -2,6 +2,7 @@ import torch
 from tqdm.notebook import tqdm
 import os
 import json
+import matplotlib.pyplot as plt
 
 
 
@@ -38,22 +39,41 @@ def estimate_loss(model,
     return out
 
 
-def prepare_dataset(text, tokenizer, block_size):
-
+def prepare_dataset(text, tokenizer_type, tokenizer, block_size):
+    
     text_cropped = text[:len(text)-len(text)%block_size + 1] # Crop to lenght (n*block_size + 1)
-    X = tokenizer.tokenize(text_cropped[:-1], block_size)    # (B,T)
-    Y = tokenizer.tokenize(text_cropped[1:], block_size)     # (B,T)
+
+    if tokenizer_type == 'chrs':
+        
+        X = tokenizer.tokenize(text_cropped[:-1], block_size)    # (B,T)
+        Y = tokenizer.tokenize(text_cropped[1:], block_size)     # (B,T)     
+        
+    elif tokenizer_type == 'bpe':
+        X_Y = tokenizer(text) # (1, num_tokens)
+        
+        num_tokens = X_Y.shape[1]
+        n = num_tokens - num_tokens % block_size + 1
+        
+        X_Y_cropped = X_Y[0, :n]
+        X = X_Y_cropped[:-1].view(-1, block_size) # (B,T)
+        Y = X_Y_cropped[1: ].view(-1, block_size) # (B,T)
+    
+    else:
+        raise ValueError("Argument tokenizer_name must be 'chrs' or 'bpe'") 
+
     data = torch.stack((X,Y))                                # (2,B,T)
 
     data = data.transpose(0,1).contiguous()   # (2,B,T) --> (B,2,T) ; DataLoader expects batch dim first
 
+    # shuffle
+    shuffle = torch.randperm(data.shape[0])
+    data = data[shuffle]
+
     # train/val/test split
     n1 = int(0.8 * data.shape[0])
     n2 = int(0.9 * data.shape[0])
-    data_dict = {'train' : data[:n1],
-                    'eval'   : data[n1:n2],
-                    'test'  : data[n2:]}
-    
+    data_dict = {'train' : data[:n1], 'eval' : data[n1:n2], 'test' : data[n2:]}
+
     return data_dict
 
 
@@ -172,3 +192,44 @@ class DataLoader:
         if self.B % self.batch_size != 0:
             l += 1
         return l
+
+
+
+#---------------------------Plot functions-----------------------------------
+
+
+
+def _plot_losses(dir_path):
+    '''Plot losses from json file'''
+
+    losses_path = os.path.join(dir_path, 'losses.json')
+    model_hyperparams_path = os.path.join(dir_path, 'model_hyperparameters.json')
+    hyperparams_path = os.path.join(dir_path, 'hyperparameters.json')
+
+    with open(losses_path, 'r') as f:
+        losses = json.load(f)
+    with open(model_hyperparams_path, 'r') as f:
+        model_hyperparameters = json.load(f)
+    with open(hyperparams_path, 'r') as f:
+        hyperparameters = json.load(f)
+
+    print(f'Best eval loss:  {losses["best_eval_loss"][0]}')
+    print(f'Best checkpoint: {losses["best_eval_loss"][1]}')
+    print(hyperparameters)
+    print(model_hyperparameters)
+
+    plt.plot(losses['steps'], losses['train_losses'], label = 'Train')
+    plt.plot(losses['steps'], losses['eval_losses'], label = 'Eval')
+    plt.legend()
+    plt.show()
+
+
+def plot_losses(run_dir):
+    '''Plot losses from run directory for all runs'''
+
+    try:
+        _plot_losses(run_dir)
+    except:
+        directories = [dir for dir in os.listdir(run_dir) if os.path.isdir(os.path.join(run_dir, dir))]
+        for d in directories:
+            _plot_losses(os.path.join(run_dir, d))

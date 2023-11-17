@@ -10,6 +10,7 @@ import argparse
 import os
 import json
 import itertools
+import bpe
 #import sys
 
 
@@ -24,7 +25,7 @@ if __name__ == '__main__':
 
     # data
     parser.add_argument('--data', type = str, default = 'input.txt', help = 'Data file name')
-    parser.add_argument('tokenizer', type = str, help = "Choose 'chrs' or 'bpe' tokenizer")
+    parser.add_argument('--tokenizer_type', type = str, default = 'chrs', help = "Choose 'chrs' or 'bpe' tokenizer")
     parser.add_argument('--batch_sizes', nargs = '*', type = int, default = [64])
     parser.add_argument('--block_sizes', nargs = '*', type = int, default = [256])
 
@@ -36,14 +37,14 @@ if __name__ == '__main__':
 
     # training hyperparams
     parser.add_argument('--num_epochs', type = int, default = 10, help = "Number of training step")
-    parser.add_argument('--eval_steps', type = int, default = 1000, help = "Periodicity of test/eval loss logging")
+    #parser.add_argument('--eval_steps', type = int, default = 1000, help = "Periodicity of test/eval loss logging")
     parser.add_argument('--learning_rates', nargs = '*', type = float, default = [1e-3])
     parser.add_argument('--weight_decays', nargs = '*', type = float, default = [1e-2])
 
     # logging
     parser.add_argument('--save_losses', action = 'store_true')
     parser.add_argument('--save_checkpoint', action = 'store_true')
-    parser.add_argument('--save_checkpoint_steps', type = int, default = 1000, help = 'Save after every save_checkpoint_steps steps')
+    #parser.add_argument('--save_checkpoint_steps', type = int, default = 1000, help = 'Save after every save_checkpoint_steps steps')
     parser.add_argument('--run_dir', type = str, default = None) 
 
     # train from checkpoint
@@ -75,13 +76,13 @@ if __name__ == '__main__':
     dropouts = args.dropouts
     # training
     num_epochs = args.num_epochs
-    eval_steps = args.eval_steps
+    #eval_steps = args.eval_steps
     learning_rates = args.learning_rates
     weight_decays = args.weight_decays
     # logging
     save_losses = args.save_losses
     save_checkpoint = args.save_checkpoint
-    save_checkpoint_steps = args.save_checkpoint_steps
+    #save_checkpoint_steps = args.save_checkpoint_steps
     run_dir = args.run_dir
 
     # train from checkpoint
@@ -101,7 +102,7 @@ if __name__ == '__main__':
     if not os.path.exists(run_dir):
         os.makedirs(run_dir)
 
-    if args.tokenizer == 'chrs':
+    if args.tokenizer_type == 'chrs':
         vocab = sorted(list(set(text)))
 
         # save vocabulary
@@ -112,8 +113,9 @@ if __name__ == '__main__':
         vocab_size = len(vocab)
         tokenizer = tokenizers.TokenizerChrs(vocab)
 
-    elif args.tokenizer == 'bpe':
-        pass
+    elif args.tokenizer_type == 'bpe':
+        vocab_size = 50257 # length of openai vocab, see bpe.py file for details
+        tokenizer = bpe.BPETokenizer()
 
     else:
         raise ValueError("Argument tokenizer must be 'chrs' or 'bpe'") 
@@ -162,19 +164,17 @@ if __name__ == '__main__':
 
 
         if i==0 or block_size != prev_block_size:
-            data_dict = utils.prepare_dataset(text, tokenizer, block_size)
+            data_dict = utils.prepare_dataset(text, args.tokenizer_type, tokenizer, block_size)
             prev_block_size = block_size
         
         trainer_ = trainer.Trainer( data_dict['train'],
                                     data_dict['eval'], 
                                     num_epochs, 
                                     batch_size, 
-                                    eval_steps, 
                                     lr,
                                     weight_decay,
                                     save_losses,
                                     save_checkpoint,
-                                    save_checkpoint_steps,
                                     curr_run_dir)
         
         trainer_.train(model, 

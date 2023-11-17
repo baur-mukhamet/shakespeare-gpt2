@@ -27,7 +27,7 @@ class BPE:
                 self.special_chrs.append(c)
 
         
-        # Init vocabulary to contain special (non-alphabetic) characters, unknown, bos, eos
+        # Init vocabulary to contain alphabetic and special (non-alphabetic) characters, unknown, pad, bos, eos
         self.vocab = {c : i for i,c in enumerate(self.chrs)}
         self.vocab['<UNK>'] = len(self.vocab)
         self.vocab['<pad>'] = len(self.vocab)
@@ -242,19 +242,3 @@ class TokenizerChrs():
 
     def decode(self, idx):
         return ''.join([self.itos[i.item()] for i in idx])
-
-
-
-# if __name__ == "__main__":
-    
-#     with open('input.txt', 'r') as f:
-#         text = f.read().lower()
-    
-#     bpe = BPE(text)
-#     bpe.build_vocab(1000)
-
-#     assert bpe.vocab_size == 1000, "Vocab size incorrect"
-
-#     tokenizer = Tokenizer(bpe.vocab)
-
-#     out = tokenizer.tokenize(['first', 'citizen', 'here', 'lord', 'king', 'taller', 'table'])

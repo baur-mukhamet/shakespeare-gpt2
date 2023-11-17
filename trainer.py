@@ -14,12 +14,10 @@ class Trainer:
                  data_eval, 
                  num_epochs, 
                  batch_size, 
-                 eval_steps,
                  learning_rate,
                  weight_decay,
                  save_losses = False,   # save train/val losses
-                 save_checkpoint = False,
-                 save_checkpoint_steps = None,
+                 save_checkpoint = False, # save best eval loss and last checkpoints
                  run_dir = None
                  ):
         
@@ -27,19 +25,16 @@ class Trainer:
         self.data_eval = data_eval
         self.num_epochs = num_epochs
         self.batch_size = batch_size
-        self.eval_steps = eval_steps
         self.learning_rate = learning_rate
         self.weight_decay = weight_decay
 
         self.save_losses = save_losses
         self.save_checkpoint = save_checkpoint
-        self.save_checkpoint_steps = save_checkpoint_steps
         self.run_dir = run_dir
 
         self.hyperparams = {
                                 'num_epochs'    :num_epochs,
                                 'batch_size'    :batch_size,
-                                'eval_steps'    :eval_steps,
                                 'learning_rate' :learning_rate,
                                 'weight_decay'  :weight_decay
                                 }
@@ -60,7 +55,7 @@ class Trainer:
 
 
         if from_checkpoint:
-            state_dict_path = os.path.join(from_checkpoint_run_dir, f'checkpoint_{from_checkpoint_step}')
+            state_dict_path = os.path.join(from_checkpoint_run_dir, f'checkpoint_{from_checkpoint_step}.pth')
             state_dict = torch.load(state_dict_path)
             model.load_state_dict(state_dict)
 
@@ -72,7 +67,7 @@ class Trainer:
         
         else:
             train_losses, eval_losses, steps = [], [], []
-            best_eval_loss = (float('inf'),0) # (loss, step)
+            best_eval_loss = (float('inf'),-1) # (loss, step)
             losses = {'train_losses': train_losses, 'eval_losses': eval_losses, 'best_eval_loss': best_eval_loss, 'steps': steps}
 
 
@@ -99,12 +94,12 @@ class Trainer:
             # create directory for logging, if it doesn't exist
             if not os.path.exists(self.run_dir):
                 os.makedirs(self.run_dir)
-            
+
+            if self.save_checkpoint:
+                best_eval_loss_checkpoint_path = '' # for tracking last saved best eval loss model
+
             if self.save_losses:
                 losses_path = os.path.join(self.run_dir, 'losses.json')
-            
-            if self.save_checkpoint:
-                assert self.save_checkpoint_steps is not None, "Argument 'save_checkpoint_steps' must be provided when save_checkpoint = True"
             
             # save training hyperparameters
             hyperparams_path = os.path.join(self.run_dir,'hyperparameters.json')
@@ -133,6 +128,8 @@ class Trainer:
         
 
         lr_curr = self.learning_rate
+        global_step = 0 if not from_checkpoint else steps[-1]
+        
         for epoch in tqdm(range(self.num_epochs)):
             train_loss = 0
 
@@ -153,9 +150,7 @@ class Trainer:
             train_losses.append(train_loss)
 
             # global step
-            global_step = (epoch+1) * len(dataloader) 
-            if from_checkpoint:
-                global_step += steps[-1]
+            global_step += 1
             steps.append(global_step)
             
 
@@ -188,8 +183,20 @@ class Trainer:
             
             # save state_dict
             if self.save_checkpoint:
-                path = os.path.join(self.run_dir, f'checkpoint_{epoch+1}')
-                torch.save(model.state_dict(), path)
+                path = os.path.join(self.run_dir, f'checkpoint_{global_step}.pth')
+                
+                if eval_loss == best_eval_loss[0]:
+                    
+                    if best_eval_loss_checkpoint_path != '':
+                        os.remove(best_eval_loss_checkpoint_path)
+
+                    best_eval_loss_checkpoint_path = path
+                    torch.save(model.state_dict(), path)
+            
+                elif epoch == self.num_epochs-1:
+                    torch.save(model.state_dict(), path)
+                    
+            
 
 
             #------------------------------------

@@ -5,6 +5,7 @@ import json
 import os
 import utils 
 import tokenizers
+import bpe
 
 
 if __name__ == '__main__':
@@ -14,6 +15,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     
     parser.add_argument('run_dir', type = str, help = 'Run directory with model/training hyperparams, state dictionary and losses')
+    parser.add_argument('--tokenizer_type', type = str, default = 'chrs', help = 'Tokenizer is either "chrs" or "bpe"' )
     parser.add_argument('--checkpoint_step', nargs = '*', type = int, help = "Checkpoint steps")
     
     parser.add_argument('--best_eval_loss_model', action = 'store_true', help = 'Load best eval loss model. Overrides checkpoint_step argument')
@@ -43,7 +45,7 @@ if __name__ == '__main__':
 
         # define paths to model hyperparms and state dict in run_dir
         model_hyperparams_path = os.path.join(checkpoint_dir, 'model_hyperparameters.json')
-        state_dict_path = os.path.join(checkpoint_dir, f'checkpoint_{checkpoint}')
+        state_dict_path = os.path.join(checkpoint_dir, f'checkpoint_{checkpoint}.pth')
         
         
 
@@ -57,22 +59,33 @@ if __name__ == '__main__':
         model.load_state_dict(state_dict)
         model.eval()
 
-        # generate
-        try:
-            with open(vocab_path, 'r') as f:
-                vocab = json.load(f)
-        except FileNotFoundError:
-            # search in the parent directory
-            parent = os.path.dirname(args.run_dir)
-            vocab_path = os.path.join(parent, 'vocab.json')
-            with open(vocab_path, 'r') as f:
-                vocab = json.load(f)
-
         
-        tokenizer = tokenizers.TokenizerChrs(vocab)
 
         context = torch.zeros((1, 1), dtype=torch.long, device=device)
-        new_text = tokenizer.decode( model.generate(context, max_new_tokens=args.max_new_tokens)[0] )
+        new_text_encoded = model.generate(context, max_new_tokens=args.max_new_tokens)[0] # (T,)
+        
+        if args.tokenizer_type == 'chrs':
+
+            # generate
+            try:
+                with open(vocab_path, 'r') as f:
+                    vocab = json.load(f)
+            except FileNotFoundError:
+                # search in the parent directory
+                parent = os.path.dirname(args.run_dir)
+                vocab_path = os.path.join(parent, 'vocab.json')
+                with open(vocab_path, 'r') as f:
+                    vocab = json.load(f)
+
+            tokenizer = tokenizers.TokenizerChrs(vocab)    
+        
+        elif args.tokenizer_type == 'bpe':
+            tokenizer = bpe.BPETokenizer()
+            
+        else:
+            raise ValueError("Tokenizer type must be 'chrs' or 'bpe'")
+        
+        new_text = tokenizer.decode(new_text_encoded)
 
         if args.write_to_file is not None:
             new_text_path = os.path.join(args.run_dir, args.write_to_file)
