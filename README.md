@@ -205,4 +205,6 @@ Sample generated text:
 > I may so lawful Roman read.<br>
 
 
-It seems that the eval loss is high and we're underfitting. The model might benefit if we make it bigger.
+It seems that the eval loss is high and we're underfitting. The training might benefit if we make the model bigger.
+
+**This could be improved in many ways, but since the main goal was to get experience with writing the script and some basic training, I will leave it here for now.**
