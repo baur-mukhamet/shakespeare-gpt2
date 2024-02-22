@@ -60,7 +60,7 @@ Arguments that support multiple inputs:
 * `cosine_T_mult`
 * `cosine_lr_restart_decay`
 
-The full set of options are:
+The full set of options:
 
 ```
 %run run.py \
