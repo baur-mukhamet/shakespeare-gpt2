@@ -91,7 +91,7 @@ The full set of options:
 
 ### Character-level model
 
-The simplest case is to train the model on the next character prediction. Here I take GPT2 architecture After some basic hyperparameter search, the best eval loss run is:
+The simplest case is to train the model on the next character prediction. Here I take GPT2 architecture. After some basic hyperparameter search, the best eval loss run is:
 
 ![chrs model losses](assets/chrs_losses.png)
 
