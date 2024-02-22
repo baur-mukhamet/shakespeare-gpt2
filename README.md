@@ -49,7 +49,7 @@ One can also do hyperparameter search by passing multiple arguments. For example
 --cosine_T_max 100
 ```
 
-Arguments that support multiple inputs are: 
+Arguments that support multiple inputs: 
 * `batch_sizes`
 * `block_sizes`
 * `learning_rates`
