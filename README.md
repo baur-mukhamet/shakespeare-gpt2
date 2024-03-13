@@ -1,6 +1,6 @@
 # Shakespeare GPT-2
 
-Transformer arcitecture is written from scratch following youtube lectures by @karpathy. I have added my own improvements such as data loader, learning rate schedules, byte-pair-encoding tokenizer etc. I've also added a general training terminal interface and wrapped everything into classes and separate modules.
+My implementation of Transformer arcitecture from scratch following youtube tutorials [Neural Nets: Zero to Hero](https://www.youtube.com/playlist?list=PLAqhIrjkxbuWI23v9cThsA9GvCAUhRvKZ) by @karpathy. I have added my own improvements such as data loader, learning rate schedules, byte-pair-encoding tokenizer etc. I've also added a general training terminal interface and wrapped everything into classes and separate modules.
 
 For training, I used GPT 2 model architecture and trained on all of Shakespeare, essentially following the lectures.
 
